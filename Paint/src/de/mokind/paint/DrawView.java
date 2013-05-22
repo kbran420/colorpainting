@@ -18,6 +18,7 @@ public class DrawView extends ImageView {
 	private float size= -1;
 	
 	private Bitmap drawBitmap = null;
+	private boolean bitmapDirty = false;
 	
 	private Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
 	
@@ -42,6 +43,7 @@ public class DrawView extends ImageView {
         	drawBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.RGB_565);
         	Canvas myCanvas = new Canvas(drawBitmap);
         	myCanvas.drawARGB(255, 255, 255, 255);
+        	bitmapDirty = false;
         }
         canvas.drawBitmap(drawBitmap, 0, 0, p);
         super.onDraw(canvas);
@@ -90,6 +92,7 @@ public class DrawView extends ImageView {
                     }
                     
                     if (drawBitmap != null && x > -1){
+                    	bitmapDirty = true;
                     	Canvas myCanvas = new Canvas(drawBitmap);
                     	p.setStrokeWidth(size);
                     	p.setStrokeMiter(size);
@@ -108,10 +111,17 @@ public class DrawView extends ImageView {
     }
 
 	public Bitmap getDrawBitmap() {
-		return drawBitmap;
+		if (bitmapDirty){ // only return bitmap when something is painted
+			return drawBitmap;
+		}else{
+			return null;
+		}
 	}
 
 	public void setDrawBitmap(Bitmap drawBitmap) {
+		if (drawBitmap != null){
+			bitmapDirty = true;
+		}
 		this.drawBitmap = drawBitmap;
 	}
 
