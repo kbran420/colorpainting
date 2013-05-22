@@ -58,7 +58,7 @@ public class DrawView extends ImageView {
     		drawBitmap = Bitmap.createBitmap(drawBitmap.getWidth(), drawBitmap.getHeight(), Bitmap.Config.RGB_565);
         	Canvas myCanvas = new Canvas(drawBitmap);
         	myCanvas.drawARGB(255, 255, 255, 255);
-        	
+        	bitmapDirty = false;
         	invalidate();
     	}    	
     }
