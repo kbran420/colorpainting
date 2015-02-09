@@ -4,11 +4,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.os.Bundle;
+import android.preference.Preference;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.Window;
@@ -20,11 +22,12 @@ import android.widget.TextView;
 
 
 public class MainActivity extends Activity {
+	
+	public static final String PREF_KEY_TIMER = "PREF_KEY_TIMER";
 
 	private static final int[] IMAGE_IDs = new int[]{
 		R.drawable._boot_13946,
 		R.drawable._baum_13980,
-		R.drawable._drachen_14004,
 		R.drawable._regenschirm_22783,
 		R.drawable._entchen_17636,
 		R.drawable._tannenbaum_18521,
@@ -38,6 +41,7 @@ public class MainActivity extends Activity {
 		R.drawable._kaninchen_18373,
 		R.drawable._schildkroete_17882,
 		R.drawable._haeuschen_23127,
+		R.drawable._drachen_14004,
 		R.drawable._frosch_17552,
 		R.drawable._brot_14963,
 		R.drawable._blume_18532,
@@ -65,7 +69,6 @@ public class MainActivity extends Activity {
 	private static final String[] IMAGE_CREDITS = new String[]{
 		"© colorpix.be",
 		"© colorpix.be",
-		"© colorpix.be",
 		"openclipart.org",
 		"© kief.be",
 		"© kief.be",
@@ -79,6 +82,7 @@ public class MainActivity extends Activity {
 		"© kief.be",
 		"© kief.be",
 		"© kief.be",
+		null,
 		"© kief.be",
 		"© colorpix.be",
 		"© kief.be",
@@ -115,12 +119,33 @@ public class MainActivity extends Activity {
 	private SparseArray<Bitmap> paintJobs = new SparseArray<Bitmap>(IMAGE_IDs.length);
 	
 	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+	        super.onWindowFocusChanged(hasFocus);
+	    if (hasFocus) {
+	    	getWindow().getDecorView().setSystemUiVisibility(
+	                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+	                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+	                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+	                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+	                | View.SYSTEM_UI_FLAG_FULLSCREEN
+	                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
+	}
+	
+	@Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 
                                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         
         setContentView(R.layout.activiy_layout);
 
@@ -193,33 +218,56 @@ public class MainActivity extends Activity {
 					}					
 				}
 			});
+//        	SharedPreferences pref = getSharedPreferences(name, mode)
+        	SharedPreferences pref = getPreferences(MODE_PRIVATE);
+        	if (pref.getBoolean(PREF_KEY_TIMER, true)){
+        		initTimer();
+        	}
         	
-        	initTimer();
         }
         
         // set switch button listener 
         ImageButton buttonNext = (ImageButton) findViewById(R.id.next);
         buttonNext.setOnClickListener(new View.OnClickListener() {
-			
 			@Override
 			public void onClick(View v) {
 				updateDrawable(paintIndex + 1);
 			}
-			
         });
+        buttonNext.setOnLongClickListener(new View.OnLongClickListener() {
+			@Override
+			public boolean onLongClick(View v) {
+				SharedPreferences.Editor prefEdit = MainActivity.this.getPreferences(MainActivity.MODE_PRIVATE).edit();
+				if (timer == null){
+					initTimer();
+					prefEdit.putBoolean(PREF_KEY_TIMER, true);
+				}else{
+					stopTimer();
+					prefEdit.putBoolean(PREF_KEY_TIMER, false);
+				}
+				prefEdit.commit();
+				return true;
+			}
+		});
 
         ImageButton buttonPrev = (ImageButton) findViewById(R.id.previous);
         buttonPrev.setOnClickListener(new View.OnClickListener() {
-			
 			@Override
 			public void onClick(View v) {
 				updateDrawable(paintIndex - 1);
 			}
         });
+        buttonPrev.setOnLongClickListener(new View.OnLongClickListener() {
+			@Override
+			public boolean onLongClick(View v) {
+				// reset timer
+				timerSeconds = 0;
+				return true;
+			}
+		});
         
         ImageButton buttonClear = (ImageButton) findViewById(R.id.clear);
         buttonClear.setOnLongClickListener(new View.OnLongClickListener() {
-			
 			@Override
 			public boolean onLongClick(View v) {
 				draw.clearBackround();
@@ -252,7 +300,17 @@ public class MainActivity extends Activity {
 		}
 		
 		// set credits
-		creditView.setText(getString(R.string.image) + "\n" + IMAGE_CREDITS[paintIndex]);
+		creditView.setText(IMAGE_CREDITS[paintIndex]==null?"":getString(R.string.image) + "\n" + IMAGE_CREDITS[paintIndex]);
+	}
+	
+	private void stopTimer() {
+		if (timer != null){
+        	timer.cancel();
+        }
+		final ProgressBar progressBarView = (ProgressBar) findViewById(R.id.progress);
+		progressBarView.setIndeterminate(false);
+		progressBarView.setProgress(0);
+		timer = null;
 	}
 
 	private void initTimer() {
