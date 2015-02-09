@@ -82,7 +82,7 @@ public class DrawView extends ImageView {
 				{
 					
                     //float newsize = ((event.getSize() * 15) * (event.getSize() * 15)) + 12; // this does not work on many devices
-					float newsize = (event.getTouchMinor() / 2.5f) + 5;
+					float newsize = ((event.getTouchMinor() / 20) * (event.getTouchMajor() / 20)) + 5;
                     float newx = event.getX();
                     float newy = event.getY();
                     
