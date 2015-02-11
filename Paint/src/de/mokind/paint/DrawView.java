@@ -1,22 +1,29 @@
 package de.mokind.paint;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.Cap;
 import android.graphics.Paint.Join;
+import android.hardware.input.InputManager;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 
+@SuppressLint("ClickableViewAccessibility")
 public class DrawView extends ImageView {
 
 	private float x = -1;
 	private float y= -1;
 	private float size= -1;
 	
+	private DisplayMetrics metrics = getResources().getDisplayMetrics();
 	private Bitmap drawBitmap = null;
 	private boolean bitmapDirty = false;
 	
@@ -73,6 +80,7 @@ public class DrawView extends ImageView {
     	// set touch listener
     	setOnTouchListener(new View.OnTouchListener() {
 			
+			@SuppressLint({ "InlinedApi", "ClickableViewAccessibility" })
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
 				
@@ -80,9 +88,36 @@ public class DrawView extends ImageView {
 					event.getAction() == MotionEvent.ACTION_UP ||
 					event.getAction() == MotionEvent.ACTION_MOVE)
 				{
+					float newsize = 1.0f / 20.0f; // default
+					InputDevice.MotionRange range = event.getDevice().getMotionRange(MotionEvent.AXIS_TOUCH_MAJOR);
+					if (range != null){
+						// TOUCH_MAJOR
+						newsize = (event.getToolMinor() + event.getTouchMajor()) / 2 / range.getMax();
+						newsize = newsize * 3.0f; // push the size effect
+						newsize = newsize * newsize ; 
+						
+					}else{
+						// TOUCH_PRESSURE
+						range = event.getDevice().getMotionRange(MotionEvent.AXIS_PRESSURE);
+						if (range != null){
+							newsize = event.getPressure() / range.getMax() * newsize * 2 ;
+							newsize = newsize * 4.0f; // push the size effect
+							newsize = newsize * newsize ; 
+						}else{
+							// TOUCH_SIZE
+							range = event.getDevice().getMotionRange(MotionEvent.AXIS_SIZE);
+							if (range != null){
+								newsize = event.getSize() / range.getMax();
+								newsize = newsize * 0.65f; // push the size effect
+								newsize = newsize * newsize ; 
+							}
+						}
+					}
+					newsize = Math.max(1.0f / 70.0f, newsize);
+					newsize = Math.min(1.0f / 6.0f, newsize);
+					newsize = newsize * metrics.widthPixels; // shift to pixel
 					
-                    //float newsize = ((event.getSize() * 15) * (event.getSize() * 15)) + 12; // this does not work on many devices
-					float newsize = ((event.getTouchMinor() / 20) * (event.getTouchMajor() / 20)) + 5;
+					
                     float newx = event.getX();
                     float newy = event.getY();
                     
